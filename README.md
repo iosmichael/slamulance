@@ -1,19 +1,25 @@
 Inspired by George Hotz's twitch slam
 
-Personal implementation of SLAM, hopefully I can do better...
+Personal implementation of SLAM, hopefully I can implement some design principles to make it more elegant...
 
 # Feature Extraction
 - GoodFeatureToTrack for Keypoint
 - ORB for Descriptor
 - BFMatcher for Feature Matching
 
-Controller
+# Basic Design
+
+*Controller*
 - DLT, Triangulation
 - Bundle Adjustment, g2o
 
-Model
-- Frame -> isKeyframe [features, pose]
+*View*
+- 2D OpenCV Display
+- 3D PyGame Reconstruction Display
+
+*Model*
+- Frame -> isKeyframe [(one-to-many)features, (one-to-one)pose]
 - 2D / 3D Features [poses], Camera Pose [features]
 
-View
-- Display
+# Library
+[G2O (for bundle adjustment)](https://github.com/RainerKuemmerle/g2o)

@@ -1,30 +1,41 @@
 import cv2
 import numpy as np 
 
-def get_K(frame_width, frame_height, scale = 1):
+class FeatureExtractor:
+
 	'''
-	camera intrinsic: F = [ f, 0, Cx
-							0, f, Cy
-							0, 0, 1  ]
-	
-	usually focal length is equivalent as the diagonal of the images
+	George Hotz's Feature Stack:
+	- Good Features to Track: Keypoint Detections
+	- ORB: Descriptor
+	- BFMatcher: Descriptor matching
+	- SKImage: RANSAC
 	'''
-	Cx, Cy = frame_width // 2, frame_height // 2
-	f = np.sqrt((frame_width/scale) ** 2 + (frame_height/scale) ** 2)
-	K = np.array([[f, 0, Cx],
-		[0, f, Cy],
-		[0, 0, 1]])
-	return K
+	def __init__(self):
+		pass
 
-def invK(K):
-	return np.linalg.inv(K)
+	def feature_detecting(self, frame):
+		orb = cv2.ORB_create()
+		pts = cv2.goodFeaturesToTrack(np.mean(frame, axis=2).astype(np.uint8), 3000, qualityLevel=0.01, minDistance=7)
+		if pts is None:
+			return None, None
+		kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in pts]
+		kps, des = orb.compute(frame, kps)
+		return kps, des
 
-def normalize(pt):
-	assert pt.shape == (2,1)
-	norm_pt = np.ones((3,1))
-	norm_pt[:2, 0] = pt
-	return norm_pt
+	def feature_matching(kp1, des1, kp2, des2):
+		# BFMatcher with default params
+		# Referred from OpenCV Website
+		if des1 is None or des2 is None:
+			return []
+		bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+		matches = bf.knnMatch(des1, des2, k=2)
+		# Apply ratio test
+		good = []
+		cnt = 100
+		for m,n in matches:
+			if m.distance < 0.75*n.distance:
+				if m.distance < 32:
+					good.append((kp1[m.queryIdx], kp2[m.trainIdx]))
 
-def denormalize(pt):
-	pt /= pt[2, 0]
-	return pt[:2, :]
+		# apply ransac
+		return good
