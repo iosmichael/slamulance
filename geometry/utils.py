@@ -43,7 +43,6 @@ def LeftNull(x, dims=3):
     # return H_v matrix with the omission of the first row
     return H_v[1:, :]
 
-
 # testing units
 def test_LeftNull(x, dims=3):
     l_null = LeftNull(x, dims)

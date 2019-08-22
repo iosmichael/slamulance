@@ -1,10 +1,10 @@
 import numpy as np 
 
 '''
-Finstwalder's Solution for P3P
+Finstwalder's Solution for P3P: Calibrated Camera
 ---
 P3P: minimal solver with Finsterwalder's Solution [https://link.springer.com/article/10.1007%2FBF02028352]
-with correction (UCSD Ben Ochoa): [https://cseweb.ucsd.edu/~bochoa/notes/haralick94corrections.pdf]
+with correction (from UCSD Ben Ochoa): [https://cseweb.ucsd.edu/~bochoa/notes/haralick94corrections.pdf]
 '''
 def P3P(x, X, K):
     # x: 3x3 points
