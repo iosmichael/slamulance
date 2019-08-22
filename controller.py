@@ -4,6 +4,7 @@ import cv2
 from view import SLAMView
 from feature import FeatureExtractor
 from models import Frame, Feature, Pose
+from utils import EssentialCamera
 
 '''
 Controller class that manages the data structure and view models
@@ -17,6 +18,7 @@ class SLAMController:
 		self.frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) // 2)
 		self.frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) // 2)
 		self.total_frame = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+		self.camera = EssentialCamera(self.frame_width, self.frame_height, scale=1)
 
 		self.view = SLAMView()
 		self.feature_extractor = FeatureExtractor()
@@ -50,9 +52,12 @@ class SLAMController:
 		# if we can find keypoints for both frames
 		if prev_model.kps or model.kps:
 			matches = self.feature_extractor.feature_matching(model.kps, model.des, prev_model.kps, prev_model.des)
-			
+			# shape of matches: 2 x n x 2
+			# matches = self.normalize_matches(matches)
 			self.view.draw_2d_matches(frame, matches)
 		
+			# clear keypoints and descriptors from the previous model after matching, memory efficiency
+			prev_model.clear()
 		self.view.draw_2d_frame(frame)
 		self.frame_idx += 1
 
@@ -62,3 +67,15 @@ class SLAMController:
 		kps, des = self.feature_extractor.feature_detecting(frame_resize)
 		model = Frame(kps, des)
 		return frame_resize, model
+
+
+	# def normalize_matches(self, matches):
+	# 	if matches.shape[0] == 0:
+	# 		return matches
+	# 	pts1 = matches[0, :, :]
+	# 	pts1 = self.camera.denormalize(self.camera.normalize(np.transpose(pts1, (1, 0))))
+	# 	pts2 = matches[1, :, :]
+	# 	pts2 = self.camera.denormalize(self.camera.normalize(np.transpose(pts2, (1, 0))))
+	# 	matches[0, :, :] = pts1.T
+	# 	matches[1, :, :] = pts2.T
+	# 	return matches

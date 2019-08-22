@@ -11,6 +11,7 @@ Personal implementation of SLAM, hopefully I can implement some design principle
 
 *Controller*
 - DLT, Triangulation
+- FinchWalder Solution for 3D absolute pose estimation
 - Bundle Adjustment, g2o
 
 *View*
@@ -23,3 +24,6 @@ Personal implementation of SLAM, hopefully I can implement some design principle
 
 # Library
 [G2O (for bundle adjustment)](https://github.com/RainerKuemmerle/g2o)
+
+
+![Screenshot](./screen.png "Feature Extraction and Matching")

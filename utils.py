@@ -1,29 +1,41 @@
 import numpy as np
 
-def get_K(frame_width, frame_height, scale = 1):
-	'''
-	camera intrinsic: F = [ f, 0, Cx
-							0, f, Cy
-							0, 0, 1  ]
+class EssentialCamera:
+
+	def __init__(self, frame_width, frame_height, scale=1):
+		'''
+		camera intrinsic: F = [ f, 0, Cx
+								0, f, Cy
+								0, 0, 1  ]
+		usually focal length is equivalent as the diagonal of the images
+		'''
+		Cx, Cy = frame_width // 2, frame_height // 2
+		f = np.sqrt((frame_width/scale) ** 2 + (frame_height/scale) ** 2)
+		K = np.array([[f, 0, Cx],
+			[0, f, Cy],
+			[0, 0, 1]])
+		self.K = K
 	
-	usually focal length is equivalent as the diagonal of the images
+	def homogenize(self, pts):
+		return np.vstack((pts, np.ones((1, pts.shape[1]))))
+
+	def dehomogenize(self, pts):
+		return pts[:-1]/pts[-1]
+
+	def normalize(self, pts):
+		return np.dot(np.linalg.inv(self.K), self.homogenize(pts))
+
+	def denormalize(self, pts):
+		return self.dehomogenize(np.dot(self.K, pts))
+
+if __name__ == '__main__':
 	'''
-	Cx, Cy = frame_width // 2, frame_height // 2
-	f = np.sqrt((frame_width/scale) ** 2 + (frame_height/scale) ** 2)
-	K = np.array([[f, 0, Cx],
-		[0, f, Cy],
-		[0, 0, 1]])
-	return K
+	normalization test
+	'''
+	pts = np.ones((2, 20))
+	camera = EssentialCamera(100, 100, scale=1)
+	print(camera.normalize(pts))
+	print(camera.normalize(pts).shape)
 
-def invK(K):
-	return np.linalg.inv(K)
-
-def normalize(pt):
-	assert pt.shape == (2,1)
-	norm_pt = np.ones((3,1))
-	norm_pt[:2, 0] = pt
-	return norm_pt
-
-def denormalize(pt):
-	pt /= pt[2, 0]
-	return pt[:2, :]
+	print(camera.denormalize(camera.normalize(pts)))
+	print(camera.denormalize(camera.normalize(pts)).shape)
