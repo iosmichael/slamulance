@@ -52,6 +52,42 @@ def DLT(x, X, normalize=True):
     print("frobineous norm of P: {}".format(np.linalg.norm(P, ord='fro')))
     return P
 
+def DisplayResults(P, x, X, title):
+    print(title + ' =')
+    print (P / np.linalg.norm(P) * np.sign(P[-1,-1]))
+
+def ComputeCost(P, x, X):
+    # Inputs:
+    #    x - 2D inhomogeneous image points
+    #    X - 3D inhomogeneous scene points
+    #
+    # Output:
+    #    cost - Total reprojection error
+    n = x.shape[1]
+#     covarx = np.eye(2*n)
+    X = Homogenize(np.matrix(X))
+    x_hat = P @ X
+    diff = x - Dehomogenize(x_hat)
+    cost = np.sum(np.array(diff.flatten()) ** 2)
+    return cost
+
+def ComputeNormalizedCost(P, x, X, K):
+    # Inputs:
+    #    P - camera projection matrix
+    #    x - 2D groundtruth image points
+    #    X - 3D groundtruth scene points
+    #    K - camera calibration matrix
+    #
+    # Output:
+    #    cost - total projection error
+    n = x.shape[1]
+    covarx = np.eye(2*n) # covariance propagation
+    x_hat = np.linalg.inv(K) @ Homogenize(x)
+    x_proj = P @ Homogenize(X)
+    diff = Dehomogenize(x_hat) - Dehomogenize(x_proj)
+    error = np.sum(np.array(diff.flatten()) ** 2)
+    return error
+
 '''
 3D to 2D absolute camera pose estimation
 EPnP: efficient PnP pose estimation
