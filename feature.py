@@ -22,7 +22,7 @@ class FeatureExtractor:
 		kps, des = orb.compute(frame, kps)
 		return kps, des
 
-	def feature_matching(kp1, des1, kp2, des2):
+	def feature_matching(self, kp1, des1, kp2, des2):
 		# BFMatcher with default params
 		# Referred from OpenCV Website
 		if des1 is None or des2 is None:

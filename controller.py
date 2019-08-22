@@ -3,6 +3,7 @@ import cv2
 
 from view import SLAMView
 from feature import FeatureExtractor
+from models import Frame, Feature, Pose
 
 '''
 Controller class that manages the data structure and view models
@@ -11,11 +12,10 @@ Controller class that manages the data structure and view models
 - camera intrinsics
 '''
 class SLAMController:
-	ASPECT_RATIO = 2 # reduce the original frame size by a scale of aspect ratio
 
 	def __init__(self, cap):
-		self.frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-		self.frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+		self.frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) // 2)
+		self.frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) // 2)
 		self.total_frame = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
 		self.view = SLAMView()
@@ -33,22 +33,32 @@ class SLAMController:
 		main controller function that does basically everything
 		'''
 		# do nothing if it is the first frame
-		if self.frame_idx - 1 < 0:
-			self.frames.append(frame)
-		else:
+		
+		frame, model = self.preprocessing_frame(frame)
+		self.frames.append(model)
 
+		if self.frame_idx - 1 < 0:
+			self.view.draw_2d_frame(frame)
+			self.frame_idx += 1
+			return
+		if self.frame_idx >= self.total_frame:
+			# TODO: throw exceptions
+			print("current frame out of bounds")
+			return
+
+		prev_model = self.frames[self.frame_idx - 1]
+		# if we can find keypoints for both frames
+		if prev_model.kps or model.kps:
+			matches = self.feature_extractor.feature_matching(model.kps, model.des, prev_model.kps, prev_model.des)
+			
+			self.view.draw_2d_matches(frame, matches)
+		
+		self.view.draw_2d_frame(frame)
 		self.frame_idx += 1
 
-		# frame2 is the previous frame, which is the train frame
-		# frame1 is the query frame
-		frame1 = cv2.resize(frame1, dsize=(frame1.shape[1]//2, frame1.shape[0]//2))
-		frame2 = cv2.resize(frame2, dsize=(frame2.shape[1]//2, frame2.shape[0]//2))
-		kp1, des1 = feature_detecting(frame1)
-		kp2, des2 = feature_detecting(frame2)
-		matches = feature_matching(kp1, des1, kp2, des2)
-		if kp1 is None or kp2 is None:
-			return None, None
-		draw_frame_annotation(frame1, matches=matches)
-
-	def find_matches(self, frame):
-		pass
+	# any preprocessing functionality here
+	def preprocessing_frame(self, frame):
+		frame_resize = cv2.resize(frame, dsize=(self.frame_width, self.frame_height))
+		kps, des = self.feature_extractor.feature_detecting(frame_resize)
+		model = Frame(kps, des)
+		return frame_resize, model
