@@ -23,6 +23,7 @@ Personal implementation of SLAM, hopefully I can implement some design principle
 - 2D / 3D Features [poses], Camera Pose [features]
 
 # Library
+[Pangolin (for 3D Visualization Library)]
 [G2O (for bundle adjustment)](https://github.com/RainerKuemmerle/g2o)
 
 

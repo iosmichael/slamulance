@@ -67,15 +67,3 @@ class SLAMController:
 		kps, des = self.feature_extractor.feature_detecting(frame_resize)
 		model = Frame(kps, des)
 		return frame_resize, model
-
-
-	# def normalize_matches(self, matches):
-	# 	if matches.shape[0] == 0:
-	# 		return matches
-	# 	pts1 = matches[0, :, :]
-	# 	pts1 = self.camera.denormalize(self.camera.normalize(np.transpose(pts1, (1, 0))))
-	# 	pts2 = matches[1, :, :]
-	# 	pts2 = self.camera.denormalize(self.camera.normalize(np.transpose(pts2, (1, 0))))
-	# 	matches[0, :, :] = pts1.T
-	# 	matches[1, :, :] = pts2.T
-	# 	return matches
