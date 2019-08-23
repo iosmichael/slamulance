@@ -71,6 +71,14 @@ class Point3D:
 		# homogeneous 3D point
 		self.data = np.zeros((4,1))
 
+	def __str__(self):
+		return "Point3D: [{}, {}, {}, {}]".format(
+			self.data[0, 0].item(), 
+			self.data[1, 0].item(), 
+			self.data[2, 0].item(), 
+			self.data[3, 0].item()
+			)
+
 	def add_observation(self, point, frame_idx):
 		# points are represented by numpy data structure for computing efficiency
 		assert point.shape == (2, 1)

@@ -4,6 +4,8 @@ import cv2
 from view import SLAMView
 from feature import FeatureExtractor
 from models import Frame, Feature, Pose
+from geometry.EPnP import DLT as Pose_DLT
+from geometry.fundamental import DLT as F_DLT
 
 '''
 Controller class that manages the data structure and view models
@@ -17,7 +19,6 @@ class SLAMController:
 		self.frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) // 2)
 		self.frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) // 2)
 		self.total_frame = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-		self.camera = EssentialCamera(self.frame_width, self.frame_height, scale=1)
 
 		self.view = SLAMView()
 		self.feature_extractor = FeatureExtractor()
@@ -62,6 +63,7 @@ class SLAMController:
 				# use matches to calculate fundamental matrix
 				# perform triangulation with P = [I | 0] and P' = [M | v]
 				self.TwoViewTriangulation(model, prev_model)
+
 			else:
 				# find the 3D points in the previous frame
 				# DLT for pose estimation
@@ -93,15 +95,22 @@ class SLAMController:
 	def PoseEstimation(self, f1, f2):
 		pts3D = f2.get_3D_points(f2.rightInliers)
 		pts2D = f1.kps[f1.leftInliers]
+		X = np.array([item.data() for item in pts3D])
+		print('X shape: {}'.format(X.shape))
+		x = np.array([item.pt for item in pts2D])
+		print('x shape: {}'.format(x.shape))
 		print('Pose estimation begins here')
 
 	# Triangulation for new 3D points
 	# given newly matched points in both frames
 	def Triangulation(self, f1, f2):
 		# creation of new 3D points
+		# intersection of two inliers
+
 		pass
 
 	def TwoViewTriangulation(self, f1, f2):
 		# creation of fundamental matrix and 3D points assuming the first pose is [I | 0]
+		
 		pass
 

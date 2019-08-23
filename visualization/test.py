@@ -10,7 +10,6 @@ import pangolin
 import numpy as np
 
 
-
 def main():
     pangolin.CreateWindowAndBind('Main', 640, 480)
     gl.glEnable(gl.GL_DEPTH_TEST)

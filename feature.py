@@ -41,7 +41,7 @@ class FeatureExtractor:
 		# Apply Ransac
 		model, inliers = ransac((kp1_ransac, kp2_ransac),
                         FundamentalMatrixTransform, min_samples=8,
-                        residual_threshold=1, max_trials=1000)
+                        residual_threshold=0.05, max_trials=100)
 		kp1_inliers = good[:, 0][inliers]
 		kp2_inliers = good[:, 1][inliers]
 		return kp1_inliers, kp2_inliers
