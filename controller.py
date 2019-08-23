@@ -51,12 +51,13 @@ class SLAMController:
 		# if we can find keypoints for both frames
 		if prev_model.kps or model.kps:
 			
-			# indices for matching keypoints
+			# indices for matched keypoints
 			model_inliers, prev_inliers = self.feature_extractor.feature_matching(model.kps, model.des, prev_model.kps, prev_model.des)
 
-			# update inliers
+			# update connection graph between the two frames
 			prev_model.rightInliers = prev_inliers
 			model.leftInliers = model_inliers
+			
 			if prev_model.pose is None:
 				# use matches to calculate fundamental matrix
 				# perform triangulation with P = [I | 0] and P' = [M | v]
@@ -69,6 +70,7 @@ class SLAMController:
 			self.Triangulation(model, prev_model)
 
 			# shape of matches: 2 x n x 2
+			# post-processing the keypoints data
 			kp1 = np.array([item.pt for item in model.kps[model_inliers]])
 			kp2 = np.array([item.pt for item in prev_model.kps[prev_inliers]])
 			matches = np.stack((kp1, kp2), axis=0)
@@ -100,6 +102,6 @@ class SLAMController:
 		pass
 
 	def TwoViewTriangulation(self, f1, f2):
-
+		# creation of fundamental matrix and 3D points assuming the first pose is [I | 0]
 		pass
 
