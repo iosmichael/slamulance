@@ -43,6 +43,16 @@ def LeftNull(x, dims=3):
     # return H_v matrix with the omission of the first row
     return H_v[1:, :]
 
+'''
+Multiple View Geometry: p88
+Only use for small A matrix
+'''
+def RightNull(A):
+    _, _, Vt = np.linalg.svd(A)
+    h = Vt[-1, :].reshape(-1, 1)
+    assert np.allclose(A @ h, np.zeros((A @ h).shape))
+    return h
+
 # testing units
 def test_LeftNull(x, dims=3):
     l_null = LeftNull(x, dims)

@@ -1,13 +1,43 @@
 import numpy as np 
-from utils import Skew
+from utils import Skew, RightNull
 import sympy
 from sympy import Symbol
 from sympy.functions import re
 
+
+def MultipleViewTriangulation(xs, Ps):
+    pass
+
 '''
-Simple triangulation (midpoint method)
-Optimal triangulation (with adjusted 2D points)
+Simple triangulation (without adjusted 2D points using fundamental matrix)
+Optimal triangulation (with adjusted 2D points using fundamental matrix)
 '''
+def SimpleTriangulation(x1, x2, P1, P2):
+    '''
+    backproject P1 as 3D line and P2 as 3D plane to perform intersection
+    1. generate F from two camera projection matrices
+    '''
+    assert x1.shape == (3, 1)
+    assert P1.shape == (3, 4)
+    C1 = RightNull(P1) # camera center from P1, shape = 4, 1
+    e2 = Skew(P2 @ C1) # skew epipole from image 2
+    pseudoP1 = np.linalg.inv(P1.T @ P1) @ P1.T
+    F = e2 @ P2 @ pseudoP1 # last term is the pseudo-inverse of P1
+	# project the point from first image to the line in the second image
+    assert F.shape == (3, 3)
+    l2 = F @ x1 # l2 is (a, b, c)
+    l2_orth = np.matrix([-l2.item(1) * x2.item(2), 
+        l2.item(0) * x2.item(2), 
+        l2.item(1) * x2.item(0) - l2.item(0) * x2.item(1)]).reshape(3,1)
+    # backproject 3D plane into the space
+    pi = P2.T @ l2_orth # shape = (4, 1), (a, b, c, d)
+    # backproject 3D line into the space
+    X_inf = pseudoP1 @ x1
+    # intersection between 3D line and 3D plane formula
+    piC1, piX_inf = np.sum(pi * C1) - pi * C1, pi * X_inf - np.sum(pi * X_inf)
+    X_intersect = X_inf * piC1 - C1 * piX_inf
+    assert X_intersect.shape == (4, 1)
+    return X_intersect
 
 '''
 optimal triangulation
@@ -19,9 +49,6 @@ def Triangulation(x1, x2, F, P):
         Xs = np.hstack((Xs, Xs_i))
     assert Xs.shape == (4, x1.shape[1])
     return Xs
-
-def SimpleTriangulation(x1, x2, F, P2):
-	pass
 
 def OptimalTriangulation(x1, x2, F, P2):
     x1_correct, x2_correct = OptimalTriangulationCorrection(x1, x2, F)

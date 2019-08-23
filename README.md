@@ -22,9 +22,28 @@ Personal implementation of SLAM, hopefully I can implement some design principle
 - Frame -> isKeyframe [(one-to-many)features, (one-to-one)pose]
 - 2D / 3D Features [poses], Camera Pose [features]
 
+# Progress
+---
+## First Phase:
+
+* Build Data Structure for Point and Pose Maps. Use Dummy Imagining Geometry
+* Use RANSAC outline rejections for initial matching.
+* DLT for absolute pose estimation and fundamental matrix estimation
+* Use Two view optimal triangulation for creating 3D feature points
+* Bundle Adjustment
+
+---
+
+## Second Phase:
+
+* RANSAC for absolute pose estimation
+* Add Keyframes and Loop Closure
+* 3D Visualization
+* Essential Matrix
+
 # Library
 [Pangolin (for 3D Visualization Library)]
 [G2O (for bundle adjustment)](https://github.com/RainerKuemmerle/g2o)
 
-
-![Screenshot](./screen.png "Feature Extraction and Matching")
+# ScreenShot
+![Screenshot](./screenshots/screen.png "Feature Extraction and Matching")

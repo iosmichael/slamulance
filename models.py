@@ -9,23 +9,33 @@ class Frame:
 
 	def __init__(self, kps, des):
 		self.keyframe = False
+		# keypoints and descriptors
 		self.kps = kps
 		self.des = des
-		self.features = []
+		# left inliers is the inliers when trying to match with previous frames
+		self.leftInliers = np.zeros(kps.shape)
+		# right inliers is the inliers when trying to match with next frames
+		self.rightInliers = np.zeros(kps.shape)
+
+		# points are 3D points triangulated by points, saved as (kp_idx: Point3D)
+		self.points = {}
 		self.pose = None
 
-	def set_keyframe(self, is_keyframe=False):
-		self.keyframe = is_keyframe
+	# return 3D points in the sequence with inlier indices
+	def get_3D_points(self, inliers):
+		pts = []
+		for i in inliers:
+			pts.append(self.points[i])
+		return pts
 
-	def add_feature(self, feature):
-		self.features.append(feature)
-
-	def set_pose(self, Rt):
-		self.pose = Rt
+	def add_3D_point(self, pt3D):
+		self.points.append(pt3D)
 
 	def clear(self):
-		del self.kps
+		# release the memories once we are done with the triangulation with the next frame
 		del self.des
+		del self.leftInliers
+		del self.rightInliers
 
 '''
 camera pose model
@@ -46,23 +56,24 @@ class Pose:
 - holds the pts and their respective frame id
 - holds a triangulation value (3d homogeneous coordinates)
 '''
-class Feature:
+class Point3D:
 
 	def __init__(self):
-		self.triangulation = None
 		'''
-		points = [x ...]
-				 [y ...]
+		information on observations:
+			points = [x ...]
+					 [y ...]
 		'''
-		self.points = np.zeros((2, 0))
-		self.frame_indices = []
+		self.point2D = np.zeros((2, 0))
+		self.frame_ids = []
+		self.kps_idx = []
 
-	def add_2D_point(self, point, frame_idx):
+		# homogeneous 3D point
+		self.data = np.zeros((4,1))
+
+	def add_observation(self, point, frame_idx):
 		# points are represented by numpy data structure for computing efficiency
 		assert point.shape == (2, 1)
-		self.points = np.stack((self.points, point), axis=1)
-		self.frame_indices.append(frame_idx)
-		assert len(self.frame_indices) == self.points.shape[1]
-
-	def set_triangulation(self, point):
-		self.triangulation = point
+		self.point2D = np.stack((self.point2D, point), axis=1)
+		self.frame_ids.append(frame_idx)
+		assert len(self.frame_ids) == self.point2D.shape[1]

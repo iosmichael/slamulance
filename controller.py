@@ -4,7 +4,6 @@ import cv2
 from view import SLAMView
 from feature import FeatureExtractor
 from models import Frame, Feature, Pose
-from utils import EssentialCamera
 
 '''
 Controller class that manages the data structure and view models
@@ -51,9 +50,28 @@ class SLAMController:
 		prev_model = self.frames[self.frame_idx - 1]
 		# if we can find keypoints for both frames
 		if prev_model.kps or model.kps:
-			matches = self.feature_extractor.feature_matching(model.kps, model.des, prev_model.kps, prev_model.des)
+			
+			# indices for matching keypoints
+			model_inliers, prev_inliers = self.feature_extractor.feature_matching(model.kps, model.des, prev_model.kps, prev_model.des)
+
+			# update inliers
+			prev_model.rightInliers = prev_inliers
+			model.leftInliers = model_inliers
+			if prev_model.pose is None:
+				# use matches to calculate fundamental matrix
+				# perform triangulation with P = [I | 0] and P' = [M | v]
+				self.TwoViewTriangulation(model, prev_model)
+			else:
+				# find the 3D points in the previous frame
+				# DLT for pose estimation
+				self.PoseEstimation(model, prev_model)
+			# triangulation
+			self.Triangulation(model, prev_model)
+
 			# shape of matches: 2 x n x 2
-			# matches = self.normalize_matches(matches)
+			kp1 = np.array([item.pt for item in model.kps[model_inliers]])
+			kp2 = np.array([item.pt for item in prev_model.kps[prev_inliers]])
+			matches = np.stack((kp1, kp2), axis=0)
 			self.view.draw_2d_matches(frame, matches)
 		
 			# clear keypoints and descriptors from the previous model after matching, memory efficiency
@@ -67,3 +85,21 @@ class SLAMController:
 		kps, des = self.feature_extractor.feature_detecting(frame_resize)
 		model = Frame(kps, des)
 		return frame_resize, model
+
+	# DLT estimation for Projective Matrix P, 
+	# given 3D points from previous frames and 2D points in current frames
+	def PoseEstimation(self, f1, f2):
+		pts3D = f2.get_3D_points(f2.rightInliers)
+		pts2D = f1.kps[f1.leftInliers]
+		print('Pose estimation begins here')
+
+	# Triangulation for new 3D points
+	# given newly matched points in both frames
+	def Triangulation(self, f1, f2):
+		# creation of new 3D points
+		pass
+
+	def TwoViewTriangulation(self, f1, f2):
+
+		pass
+

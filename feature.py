@@ -5,7 +5,6 @@ from skimage.transform import FundamentalMatrixTransform
 
 
 class FeatureExtractor:
-
 	'''
 	George Hotz's Feature Stack:
 	- Good Features to Track: Keypoint Detections
@@ -34,14 +33,15 @@ class FeatureExtractor:
 		for m,n in matches:
 			if m.distance < 0.75*n.distance:
 				if m.distance < 32:
-					good.append((kp1[m.queryIdx], kp2[m.trainIdx]))
-
-		kp1 = np.array([item[0].pt for item in good])
-		kp2 = np.array([item[1].pt for item in good])
+					good.append((m.queryIdx, m.trainIdx))
+		# use tuple to represent
+		print(np.array(good).shape)
+		kp1_ransac = np.array([item.pt for item in kp1[good[:, 0]]])
+		kp2_ransac = np.array([item.pt for item in kp2[good[:, 1]]])
 		# Apply Ransac
-		model, inliers = ransac((kp1, kp2),
+		model, inliers = ransac((kp1_ransac, kp2_ransac),
                         FundamentalMatrixTransform, min_samples=8,
                         residual_threshold=1, max_trials=1000)
-		kp1 = kp1[inliers]
-		kp2 = kp2[inliers]
-		return np.stack((kp1, kp2), axis=0).astype(int)
+		kp1_inliers = good[:, 0][inliers]
+		kp2_inliers = good[:, 1][inliers]
+		return kp1_inliers, kp2_inliers
