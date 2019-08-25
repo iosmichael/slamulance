@@ -6,6 +6,12 @@ def Homogenize(pts):
 def Dehomogenize(pts):
 	return pts[:-1]/pts[-1]
 
+def NormalizePoints(pts, K):
+    '''
+    pts shape = (3, n)
+    '''
+    return np.linalg.inv(K) @ pts
+
 def Normalize(pts):
     # data normalization of n dimensional pts
     #

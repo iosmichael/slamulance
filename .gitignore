@@ -1,7 +1,7 @@
 # Media Files
 *.mp4
 *.mkv
-
+*.g2o
 # Python garbage
 __pycache__
 .ipynb_checkpoint

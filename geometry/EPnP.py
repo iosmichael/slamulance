@@ -172,7 +172,6 @@ def control_points_cam(I):
     
 def parameterize_3D_world(X, s, V):
     A_inv = V.T / s
-    print(A_inv)
     # mean of X is the first control point C_1
     mu_X = np.mean(X, axis=1)
     b = X - mu_X
