@@ -23,7 +23,7 @@ Personal implementation of SLAM, hopefully I can implement some design principle
 - 2D / 3D Features [poses], Camera Pose [features]
 
 # Progress
----
+
 ## First Phase:
 
 * Build Data Structure for Point and Pose Maps. Use Dummy Imagining Geometry
@@ -31,8 +31,6 @@ Personal implementation of SLAM, hopefully I can implement some design principle
 * DLT for absolute pose estimation and fundamental matrix estimation
 * Use Two view optimal triangulation for creating 3D feature points
 * Bundle Adjustment
-
----
 
 ## Second Phase:
 
