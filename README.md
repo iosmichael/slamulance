@@ -29,7 +29,7 @@ Personal implementation of SLAM, hopefully I can implement some design principle
 * Build Data Structure for Point and Pose Maps. Use Dummy Imagining Geometry
 * Use RANSAC outline rejections for initial matching.
 * DLT for absolute pose estimation and fundamental matrix estimation
-* Use Two view optimal triangulation for creating 3D feature points
+* Complete linear triangulation with essential matrix decomposition for creating 3D feature points
 * Bundle Adjustment
 
 ## Second Phase:
