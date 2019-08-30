@@ -1,7 +1,8 @@
 import cv2
 import numpy as np 
 from skimage.measure import ransac
-from skimage.transform import FundamentalMatrixTransform
+from skimage.transform import EssentialMatrixTransform
+from geometry.utils import *
 
 
 class FeatureExtractor:
@@ -26,6 +27,13 @@ class FeatureExtractor:
 		# Referred from OpenCV Website
 		if des1 is None or des2 is None:
 			return np.zeros((0, 0, 2))
+
+		# this is just for test
+		WIDTH, HEIGHT = 621, 187
+		K = np.array([[525, 0, WIDTH//2],
+				  	  [0, 525, HEIGHT//2],
+				  	  [0, 0, 1]])
+
 		bf = cv2.BFMatcher(cv2.NORM_HAMMING)
 		matches = bf.knnMatch(des1, des2, k=2)
 		# Apply ratio test
@@ -35,13 +43,16 @@ class FeatureExtractor:
 				if m.distance < 32:
 					good.append((m.queryIdx, m.trainIdx))
 		# use tuple to represent
-		print(np.array(good).shape)
-		kp1_ransac = np.array([item.pt for item in kp1[good[:, 0]]])
-		kp2_ransac = np.array([item.pt for item in kp2[good[:, 1]]])
+		good = np.array(good)
+		# kp1, kp2 = np.array([item.pt for item in kp1]), np.array([item.pt for item in kp2])
+		kp1_ransac = kp1[good[:, 0]]
+		kp2_ransac = kp2[good[:, 1]]
 		# Apply Ransac
+			# shape = (n, 2)
+		kp1_ransac, kp2_ransac = Dehomogenize(NormalizePoints(Homogenize(kp1_ransac.T), K)).T, Dehomogenize(NormalizePoints(Homogenize(kp2_ransac.T), K)).T
 		model, inliers = ransac((kp1_ransac, kp2_ransac),
-                        FundamentalMatrixTransform, min_samples=8,
-                        residual_threshold=0.05, max_trials=100)
+                        EssentialMatrixTransform, min_samples=8,
+                        residual_threshold=0.02, max_trials=1000)
 		kp1_inliers = good[:, 0][inliers]
 		kp2_inliers = good[:, 1][inliers]
 		return kp1_inliers, kp2_inliers

@@ -1,98 +1,43 @@
-import numpy as np 
-from .utils import Homogenize, Dehomogenize, Normalize
+import numpy as np
+from geometry.utils import *
 
-'''
-DLT for pose estimation, when there is no outliers, all points are clean
-'''
-def DLT(x, X, normalize=True):
-    # Inputs:
-    #    x - 2D inhomogeneous image points
-    #    X - 3D inhomogeneous scene points
-    #    normalize - if True, apply data normalization to x and X
-    #
-    # Output:
-    #    P - the (3x4) DLT estimate of the camera projection matrix
-    P = np.eye(3,4)+np.random.randn(3,4)/10
-    P, x, X = np.matrix(P), np.matrix(x), np.matrix(X)
-    # data normalization
-    if normalize:
-        x, T = Normalize(x)
-        X, U = Normalize(X)
-    else:
-        x = Homogenize(x)
-        X = Homogenize(X)
-    '''
-        compute A matrix, which give rises to systems of linear equations: A p = 0
-        shape of x: 3, 50
-        shape of X: 4, 50
-    '''
-    x_dims, x_nums = x.shape
-    X_dims, X_nums = X.shape
-    assert x_nums == X_nums
-    # dummy first row of the A matrix
-    A = np.zeros((0,12))
-    for i in range(x_nums):
-        x_pt, X_pt = x[:, i], X[:, i]
-        l_null = left_null(x_pt, dims=3)
-        assert l_null.shape == (2, 3)
-        assert X_pt.T.shape == (1, 4)
-        A = np.vstack((A, np.kron(l_null, X_pt.T)))
-    assert A.shape == (2 * x_nums, 12)
-    
-    # solve for p using SVD, and reverse vectorize p matrix
-    u, sigma, vh = np.linalg.svd(A)
-    # taking the last row of v transpose
-    p = vh[-1,:].T
-    # reverse vectorize p
-    P = p.reshape(3,4)
-    # data denormalize
-    if normalize:
-        P = np.linalg.inv(T) @ P @ U    
-        P = P / np.linalg.norm(P, ord='fro')
-    print("frobineous norm of P: {}".format(np.linalg.norm(P, ord='fro')))
-    return P
+def main():
+	# load data
+	x0 = np.loadtxt('test/hw2_points2D.txt').T
+	X0 = np.loadtxt('test/hw2_points3D.txt').T
+	K = np.array([[1545.0966799187809, 0, 639.5], 
+				  [0, 1545.0966799187809, 359.5], 
+				  [0, 0, 1]])
+	x0_hat = np.linalg.inv(K) @ Homogenize(x0)
+	print('x shape', x0_hat.shape)
+	print('X shape', X0.shape)
+	P = EPnP(x0_hat, X0)
+	print("det(R): {}".format(np.linalg.det(P[:, :3])))
+	print("pose estimation reprojection error: {}".format(ComputeCost(P, x0_hat, X0)))
+	print('Passed Absolute Pose Estimation with EPnP')
 
-def DisplayResults(P, x, X, title):
-    print(title + ' =')
-    print (P / np.linalg.norm(P) * np.sign(P[-1,-1]))
-
-def ComputeCost(P, x, X):
-    # Inputs:
-    #    x - 2D inhomogeneous image points
-    #    X - 3D inhomogeneous scene points
-    #
-    # Output:
-    #    cost - Total reprojection error
-    n = x.shape[1]
-#     covarx = np.eye(2*n)
-    X = Homogenize(np.matrix(X))
-    x_hat = P @ X
-    diff = x - Dehomogenize(x_hat)
-    cost = np.sum(np.array(diff.flatten()) ** 2)
-    return cost
-
-def ComputeNormalizedCost(P, x, X, K):
-    # Inputs:
-    #    P - camera projection matrix
-    #    x - 2D groundtruth image points
-    #    X - 3D groundtruth scene points
-    #    K - camera calibration matrix
-    #
-    # Output:
-    #    cost - total projection error
-    n = x.shape[1]
-    covarx = np.eye(2*n) # covariance propagation
-    x_hat = np.linalg.inv(K) @ Homogenize(x)
-    x_proj = P @ Homogenize(X)
-    diff = Dehomogenize(x_hat) - Dehomogenize(x_proj)
-    error = np.sum(np.array(diff.flatten()) ** 2)
-    return error
+def ComputeCost(P, x_hat, X):
+	# Inputs:
+	#    P - camera projection matrix
+	#    x - 2D groundtruth image points
+	#    X - 3D groundtruth scene points
+	#    K - camera calibration matrix
+	#
+	# Output:
+	#    cost - total projection error
+	n = x_hat.shape[1]
+	covarx = np.eye(2*n) # covariance propagation
+	# x_hat = np.linalg.inv(K) @ Homogenize(x)
+	x_proj = P @ Homogenize(X)
+	diff = Dehomogenize(x_hat) - Dehomogenize(x_proj)
+	error = np.sum(np.array(diff.flatten()) ** 2)
+	return error
 
 '''
 3D to 2D absolute camera pose estimation
 EPnP: efficient PnP pose estimation
 '''
-def EPnP(x, X, K):
+def EPnP(x_hat, X):
     # Inputs:
     #    x - 2D inlier points
     #    X - 3D inlier points
@@ -100,7 +45,7 @@ def EPnP(x, X, K):
     #    P - normalized camera projection matrix
     
     # shape of x_hat is 3 x n
-    x_hat = np.linalg.inv(K) @ Homogenize(x)
+    # x_hat = np.linalg.inv(K) @ Homogenize(x)
     
     # parameterize 3D point in the world coordinate frame
     X = np.matrix(X)
@@ -115,7 +60,7 @@ def EPnP(x, X, K):
     # parameterize 3D point in the camera coordinate frame
     # construct matrix I
     I = np.zeros((0, 12))
-    for i in range(x.shape[1]):
+    for i in range(x_hat.shape[1]):
         sub_I = np.zeros((2, 0))
         for j in range(4):
             mat = np.array([[alpha[j, i], 0, -alpha[j, i] * x_hat[0, i] / x_hat[2, i]], 
@@ -186,3 +131,7 @@ def scale_3D_cam(X, X_cam):
     _, d_cam, _ = np.linalg.svd(np.cov(X_cam))
     beta = np.sign(mean[2]) * np.sqrt(np.sum(d) / np.sum(d_cam))
     return np.asscalar(beta) * X_cam
+
+
+if __name__ == '__main__':
+	main()

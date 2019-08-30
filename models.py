@@ -1,4 +1,5 @@
 import numpy as np 
+from geometry.utils import *
 
 '''
 each frame has many features, [many to many]
@@ -12,11 +13,8 @@ class Frame:
 		# keypoints and descriptors
 		self.kps = kps
 		self.des = des
-		# left inliers is the inliers when trying to match with previous frames
-		self.leftInliers = np.zeros(kps.shape)
-		# right inliers is the inliers when trying to match with next frames
-		self.rightInliers = np.zeros(kps.shape)
-
+		self.leftInliers = None
+		self.rightInliers = None
 		# points are 3D points triangulated by points, saved as (kp_idx: Point3D)
 		self.points = {}
 		self.pose = None

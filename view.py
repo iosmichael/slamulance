@@ -10,6 +10,7 @@ class SLAMView:
 
 	def draw_2d_matches(self, frame, matches):
 		print("{} matches".format(matches.shape[1]))
+		matches = matches.astype(int)
 		for i in range(matches.shape[1]):
 			cv2.circle(frame, (matches[0, i, 0], matches[0, i, 1]), radius=3, color=(0, 255.0, 0))
 			cv2.line(frame, (matches[0, i, 0], matches[0, i, 1]), (matches[1, i, 0], matches[1, i, 1]), (255, 0, 0), thickness=1)

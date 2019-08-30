@@ -41,11 +41,12 @@ Personal implementation of SLAM, hopefully I can implement some design principle
 
 # Library
 [Pangolin (for 3D Visualization Library)]
+
 [G2O (for bundle adjustment)](https://github.com/RainerKuemmerle/g2o)
 
 *MAC build problem for g2opy:*
 
-change "python/core/hyper\_graph.h"
+[change "python/core/hyper\_graph.h"](https://github.com/uoip/g2opy/issues/1)
 
 line 71: "id"\_a=HyperGraph::UnassignedId -> "id"\_a=-1
 

@@ -32,9 +32,9 @@ def Normalize(pts):
 def Skew(w):
     assert w.shape == (3, 1)
     # Returns the skew-symmetrix represenation of a vector
-    w_skew = np.matrix([[0, -w[2], w[1]],
-                        [w[2], 0, -w[0]],
-                        [-w[1], w[0], 0]])
+    w_skew = np.matrix([[0, -w[2].item(), w[1].item()],
+                        [w[2].item(), 0, -w[0].item()],
+                        [-w[1].item(), w[0].item(), 0]])
     return w_skew
 
 def LeftNull(x, dims=3):
@@ -54,9 +54,9 @@ Multiple View Geometry: p88
 Only use for small A matrix
 '''
 def RightNull(A):
-    _, _, Vt = np.linalg.svd(A)
+    _, d, Vt = np.linalg.svd(A)
     h = Vt[-1, :].reshape(-1, 1)
-    assert np.allclose(A @ h, np.zeros((A @ h).shape))
+    # assert np.allclose(A @ h, np.zeros((A @ h).shape))
     return h
 
 # testing units
@@ -64,5 +64,3 @@ def test_LeftNull(x, dims=3):
     l_null = LeftNull(x, dims)
     print(l_null)
     print(l_null @ x)
-
-test_LeftNull(np.matrix([1,2,3]).T, dims=3)

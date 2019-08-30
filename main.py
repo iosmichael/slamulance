@@ -3,10 +3,12 @@ import argparse
 
 from controller import SLAMController
 
+VIDEO_PATH = './videos/test_kitti984.mp4'
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='SLAM program with real world video')
 	# additional input settings add here
-	parser.add_argument('--video_path', default='./driving.mp4', type=str, help='video path, mp4 media type supported')
+	parser.add_argument('--video_path', default=VIDEO_PATH, type=str, help='video path, mp4 media type supported')
 	args = parser.parse_args()
 	
 	cap = cv2.VideoCapture(args.video_path)

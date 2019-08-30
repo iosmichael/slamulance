@@ -1,5 +1,6 @@
 import numpy as np 
-from triangulation import SimpleTriangulation
+from .triangulation import SimpleTriangulation
+from .utils import *
 
 '''
 Minimum Solver for Fundamental Matrix: currently using skimage.transform.FundamentalMatrixTransform
@@ -48,8 +49,10 @@ def DLT_E(x1, x2, K, normalize=True):
     #    F - the DLT estimate of the essential matrix  
     
     # points normalization with calibration matrix
-    x1, x2 = np.matrix(x1), np.matrix(x2)
-    x1, x2 = NormalizePoints(x1), NormalizePoints(x2)
+    x1, x2 = np.matrix(x1.T), np.matrix(x2.T)
+    # shape == (2, n)
+    x1, x2 = NormalizePoints(Homogenize(x1), K), NormalizePoints(Homogenize(x2), K)
+    x1, x2 = Dehomogenize(x1), Dehomogenize(x2)
     # data normalization
     if normalize:
         x1, T1 = Normalize(x1)
@@ -64,12 +67,12 @@ def DLT_E(x1, x2, K, normalize=True):
     u, d, vt = np.linalg.svd(A)
     f = vt[-1, :].T
     E = f.reshape(3, 3)
-    u, d, vt = np.linalg.svd(F)
+    u, d, vt = np.linalg.svd(E)
     d[2] = 0
     E = u @ np.diag(d) @ vt
     # data denormalization
     if normalize:
-        E = T2.T @ F @ T1
+        E = T2.T @ E @ T1
     E = E / np.linalg.norm(E)
     return E
 
@@ -135,6 +138,8 @@ def decompose_E(E, x1, x2):
         P_front = chirality(P, X)
         if P0_front and P_front:
             return P0, P
+        else:
+            print('not good solution')
     print("could not find a valid decomposition of essential matrix")
     return P0, P1
 
@@ -145,4 +150,4 @@ Chirality tests whether the reconstructed point is in front of the camera pose
 def chirality(P, X):
     assert X.shape == (4, 1)
     w = P[2, :] @ X
-    return w * X[-1,0] * np.linalg.det(P[:, :3])
+    return w * X[-1,0] * np.linalg.det(P[:, :3]) > 0
