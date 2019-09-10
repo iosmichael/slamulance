@@ -65,14 +65,14 @@ def Decompose_Essential(E, x1, x2):
     print("d: {}".format(d))
     Z = np.matrix([[0, -1, 0],[1, 0, 0],[0, 0, 1]])
     R1, R2 = U @ Z @ Vt, U @ Z.T @ Vt
-    print('R1: {}, R2: {}'.format(R1, R2))
-    print('det(R1): {}, det(R2): {}'.format(np.linalg.det(R1), np.linalg.det(R2)))
     t1, t2 = U[:, -1], -U[:, -1]
-    print('t1: {}, t2: {}'.format(t1, t2))
     if np.linalg.det(R1) < 0:
         R1 = -R1
     if np.linalg.det(R2) < 0:
         R2 = -R2
+    print('R1: {}, R2: {}'.format(R1, R2))
+    print('det(R1): {}, det(R2): {}'.format(np.linalg.det(R1), np.linalg.det(R2)))
+    print('t1: {}, t2: {}'.format(t1, t2))
     # Canonical Camera Matrix
     P0 = np.hstack((np.eye(3), np.zeros((3,1))))
     P_prime = None
@@ -94,6 +94,14 @@ def Decompose_Essential(E, x1, x2):
     assert not_essential_count == 3
     assert P_prime is not None
     return P0, P_prime
+
+def Project_Essential(I, P2, Rt):
+    R, t = Rt[:, :3], Rt[:, -1].reshape(-1,1)
+    I, O = I[:, :3], I[:, -1].reshape(-1,1)
+    R2, t2 = P2[:, :3], P2[:, -1].reshape(-1,1)
+    P1 = np.hstack((R @ I, O + t))
+    P3 = np.hstack((R @ R2, t2 + t))
+    return P1, P3
 
 def Compose_Essential(P1, P2):
     R1, t1 = P1[:, :3], P1[:, -1]

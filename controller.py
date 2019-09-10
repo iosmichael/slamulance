@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 
-from view import SLAMView2D, SLAMView3D
 from feature import FeatureExtractor
 from models import Frame, Point3D, Pose
 from geometry.utils import *
@@ -24,7 +23,6 @@ class SLAMController:
 		self.total_frame = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 		print('WIDTH: {}, HEIGHT: {}, FRAME_COUNT: {}'.format(self.frame_width, self.frame_height, self.total_frame))
 
-		self.view2d = SLAMView2D()
 		self.feature_extractor = FeatureExtractor()
 
 		self.frame_idx = 0
@@ -50,13 +48,12 @@ class SLAMController:
 		self.frames.append(curr_frame)
 
 		if self.frame_idx - 1 < 0:
-			self.view2d.draw_2d_frame(image)
 			self.frame_idx += 1
-			return
+			return image, None
 		if self.frame_idx >= self.total_frame:
 			# TODO: throw exceptions
 			print("current frame out of bounds")
-			return
+			return None, None
 
 		prev_frame = self.frames[self.frame_idx - 1]
 		# if we can find keypoints for both frames
@@ -75,20 +72,19 @@ class SLAMController:
 				self.TwoViewPoseEstimation(curr_frame, prev_frame)
 			else:
 				# find the 3D points in the previous frame
-				# EPnP for pose estimation to only update current frame's camera pose				
-				self.AbsolutePoseEstimation(curr_frame, prev_frame)
+				# EPnP for pose estimation to only update current frame's camera pose
+				self.EssentialPoseEstimation(curr_frame, prev_frame)
 
 			# shape of matches: 2 x n x 2
 			# post-processing the keypoints data
 			kp1 = curr_frame.kps[curr_inliers]
 			kp2 = prev_frame.kps[prev_inliers]
 			matches = np.stack((kp1, kp2), axis=0)
-			self.view2d.draw_2d_matches(image, matches)
 		
 			# clear keypoints and descriptors from the previous model after matching, memory efficiency
 			# prev_model.clear()
-		self.view2d.draw_2d_frame(image)
 		self.frame_idx += 1
+		return image, matches
 
 	# any preprocessing functionality here
 	def preprocessing_frame(self, frame):
@@ -98,6 +94,16 @@ class SLAMController:
 		print('changing keypoints to np array')
 		model = Frame(kps, des)
 		return frame_resize, model
+
+	def find_union_intersection(self, curr_frame, prev_frame):
+		poseIdx, triIdx = [], []
+		for i, item in enumerate(prev_frame.rightInliers):
+			if item in prev_frame.leftInliers:
+				poseIdx.append((item, curr_frame.leftInliers[i]))
+			else:
+				triIdx.append((item, curr_frame.leftInliers[i]))
+		assert len(poseIdx) + len(triIdx) == len(curr_frame.leftInliers)
+		return poseIdx, triIdx
 
 	# DLT estimation for Projective Matrix P, 
 	# given 3D points from previous frames and 2D points in current frames
@@ -133,15 +139,37 @@ class SLAMController:
 			curr_frame.add_3D_point(item[1], p3d)
 		assert curr_frame.has_all(curr_frame.leftInliers)
 
-	def find_union_intersection(self, curr_frame, prev_frame):
-		poseIdx, triIdx = [], []
-		for i, item in enumerate(prev_frame.rightInliers):
-			if item in prev_frame.leftInliers:
-				poseIdx.append((item, curr_frame.leftInliers[i]))
-			else:
-				triIdx.append((item, curr_frame.leftInliers[i]))
-		assert len(poseIdx) + len(triIdx) == len(curr_frame.leftInliers)
-		return poseIdx, triIdx
+	def EssentialPoseEstimation(self, curr_frame, prev_frame):
+		pts1, pts2 = prev_frame.kps[prev_frame.rightInliers], curr_frame.kps[curr_frame.leftInliers]
+		pts1, pts2 = Homogenize(pts1.T), Homogenize(pts2.T)
+		n = pts1.shape[1]
+		norm_pts1, norm_pts2 = NormalizePoints(pts1, self.K), NormalizePoints(pts2, self.K)
+		E = DLT_E(norm_pts1, norm_pts2)
+		I, P2 = Decompose_Essential(E, norm_pts1, norm_pts2)
+		_, P3 = Project_Essential(I, P2, prev_frame.pose.P())
+		assert(len(prev_frame.rightInliers) == len(curr_frame.leftInliers)) 
+		poseIdx, triIdx = self.find_union_intersection(curr_frame, prev_frame)
+		pts3D = prev_frame.get_3D_points([idx[0] for idx in poseIdx])
+		for i, item in enumerate(poseIdx):
+			pts3D[i].add_observation(point=curr_frame.kps[item[1]].reshape(-1,1), frame_idx=self.frame_idx)
+			curr_frame.add_3D_point(item[1], pts3D[i])
+
+		curr_frame.pose = Pose(P3[:, :3], P3[:, -1])
+		pts1, pts2 = prev_frame.kps[[idx[0] for idx in triIdx]], curr_frame.kps[[idx[1] for idx in triIdx]]
+		pts1, pts2 = Homogenize(pts1.T), Homogenize(pts2.T)
+		n = pts1.shape[1]
+		norm_pts1, norm_pts2 = NormalizePoints(pts1, self.K), NormalizePoints(pts2, self.K)
+		Xs = Triangulation(norm_pts1, norm_pts2, prev_frame.pose.P(), curr_frame.pose.P(), option='linear', verbose=False)
+		assert Xs.shape[1] == len(triIdx)
+		for i, item in enumerate(triIdx):
+			p3d = Point3D(Xs[:, i].reshape(-1,1))
+			# add new 3d point
+			self.points.append(p3d)
+			p3d.add_observation(point=prev_frame.kps[item[0]].reshape(-1,1), frame_idx=self.frame_idx-1)
+			p3d.add_observation(point=curr_frame.kps[item[1]].reshape(-1,1), frame_idx=self.frame_idx)
+			prev_frame.add_3D_point(item[0], p3d)
+			curr_frame.add_3D_point(item[1], p3d)
+		assert curr_frame.has_all(curr_frame.leftInliers)
 
 	def TwoViewPoseEstimation(self, curr_frame, prev_frame):
 		# creation of essential matrix and 3D points assuming the first pose (f2) is [I | 0], the second pose (f1) is [R | t]
@@ -157,7 +185,7 @@ class SLAMController:
 		print('Second camera R: {} t: {}'.format(P2[:, :3], P2[:, -1]))
 		prev_frame.pose = Pose(P1[:, :3], P1[:, -1])
 		curr_frame.pose = Pose(P2[:, :3], P2[:, -1])
-		Xs = Triangulation(norm_pts1, norm_pts2, P1, P2, option='linear', verbose=False)
+		Xs = Triangulation(norm_pts1, norm_pts2, P1, P2, option='linear', verbose=True)
 		assert Xs.shape[1] == n
 		for i in range(n):
 			p3d = Point3D(Xs[:, i].reshape(-1,1))

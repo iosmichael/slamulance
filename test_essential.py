@@ -27,11 +27,40 @@ def main():
 	# P1 = [I | 0] -> pts1, P2 = [R | t]
 
 	# norm_pts1.shape == (3, n)
-	P1, P2 = Decompose_Essential(E, norm_pts1, norm_pts2)
-	Xs = Triangulation(norm_pts1, norm_pts2, P1, P2, verbose=False)
-	E_compose = Compose_Essential(P1, P2)
+	I, P2 = Decompose_Essential(E, norm_pts1, norm_pts2)
+	Xs1 = Triangulation(norm_pts1, norm_pts2, I, P2, verbose=True)
+	print(Xs1.shape)
+	Rt = generate_Rt(30)
+
+	P1, P3 = Project_Essential(I, P2, Rt)
+	# print(P1p)
+	Xs2 = Triangulation(norm_pts1, norm_pts2, P1, P3, verbose=True)
+	diff = Rt[:, :-1] @ Dehomogenize(Xs1) + Rt[:, -1].reshape(-1,1) - Dehomogenize(Xs2)
+	print(np.mean(diff))
+
+
+	E_compose = Compose_Essential(P1, P3)
 	print("rank of E: {}".format(np.linalg.matrix_rank(E_compose)))
 	print("difference: {}".format(np.linalg.det(E - E_compose)))
+
+def Project_Essential(I, P2, Rt):
+    R, t = Rt[:, :3], Rt[:, -1].reshape(-1,1)
+    I, O = I[:, :3], I[:, -1].reshape(-1,1)
+    R2, t2 = P2[:, :3], P2[:, -1].reshape(-1,1)
+    P1 = np.hstack((R @ I, O + t))
+    P3 = np.hstack((R @ R2, t2 + t))
+    print(P1.shape, P3.shape)
+    return P1, P3
+
+def generate_Rt(theta):
+	R = np.array([[np.cos(theta), -np.sin(theta), 0],
+				  [np.sin(theta), np.cos(theta), 0],
+				  [0, 0, 1]])
+	assert np.linalg.det(R) == 1
+	t = np.random.random((3,1)) * 100
+	print('R: {}'.format(R))
+	print('t: {}'.format(t))
+	return np.hstack((R, t))
 
 def GeometricTriangulation(x1, x2, P1, P2):
 	'''
@@ -78,3 +107,4 @@ def GeometricTriangulation(x1, x2, P1, P2):
 
 if __name__ == '__main__':
 	main()
+	# generate_Rt(39)

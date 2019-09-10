@@ -5,6 +5,7 @@ import pangolin
 import OpenGL.GL as gl
 import numpy as np
 import time
+from geometry.utils import *
 
 
 class SLAMView2D:
@@ -77,7 +78,15 @@ class SLAMView3D:
 		if self.data is not None:
 			gl.glLineWidth(3)
 			gl.glColor3f(0.0, 1.0, 0.0)
-			pangolin.DrawCameras(self.data)
+			pangolin.DrawCameras(self.data[0])
+			if len(self.data) > 1:
+				gl.glPointSize(5)
+				points = self.data[1]
+				colors = np.zeros((points.shape[0], 3))
+				colors[:, 1] = 1
+				colors[:, 2] = 1
+				colors[:, 0] = 1
+				pangolin.DrawPoints(points, colors)
 			
 		pangolin.FinishFrame()
 
@@ -86,13 +95,19 @@ class SLAMView3D:
 			return
 
 		poses = []
+		pts = []
 		for f in frames:
 			# invert pose for display only
-			print(f.pose)
 			pose = f.pose.P()
 			pose = np.vstack((pose, np.zeros((1,4))))
 			pose[-1, -1] = 1
 			poses.append(np.array(np.linalg.inv(pose)))
+		
+		for p in points:
+			pts.append(p.get_data())
 		# print(poses)
 		print(np.stack(poses, axis=0).shape)
-		self.q.put(np.stack(poses, axis=0))
+		if len(pts) == 0:
+			self.q.put([np.stack(poses, axis=0)])
+		else:
+			self.q.put([np.stack(poses, axis=0), Dehomogenize(np.hstack(pts)).T])
