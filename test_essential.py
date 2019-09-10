@@ -1,7 +1,8 @@
 import numpy as np
 import os
 from geometry.utils import *
-from geometry.fundamental import *
+from geometry.triangulation import Triangulation
+from geometry.essential import *
 
 def main():
 	# calibration matrix
@@ -26,119 +27,54 @@ def main():
 	# P1 = [I | 0] -> pts1, P2 = [R | t]
 
 	# norm_pts1.shape == (3, n)
-	decompose_essential(E, norm_pts1, norm_pts2)
+	P1, P2 = Decompose_Essential(E, norm_pts1, norm_pts2)
+	Xs = Triangulation(norm_pts1, norm_pts2, P1, P2, verbose=False)
+	E_compose = Compose_Essential(P1, P2)
+	print("rank of E: {}".format(np.linalg.matrix_rank(E_compose)))
+	print("difference: {}".format(np.linalg.det(E - E_compose)))
 
-def decompose_essential(E, x1, x2):
-	U, d, Vt = np.linalg.svd(E)
-	print("d: {}".format(d))
-	Z = np.matrix([[0, -1, 0],[1, 0, 0],[0, 0, 1]])
-	R1, R2 = U @ Z @ Vt, U @ Z.T @ Vt
-	print('R1: {}, R2: {}'.format(R1, R2))
-	print('det(R1): {}, det(R2): {}'.format(np.linalg.det(R1), np.linalg.det(R2)))
-	t1, t2 = U[:, -1], -U[:, -1]
-	print('t1: {}, t2: {}'.format(t1, t2))
-	if np.linalg.det(R1) < 0:
-		R1 = -R1
-	if np.linalg.det(R2) < 0:
-		R2 = -R2
-	# Canonical Camera Matrix
-	P0 = np.hstack((np.eye(3), np.zeros((3,1))))
-	# Four Possible Solutions
-	P1 = np.concatenate((R1, t1), axis=1)
-	P2 = np.concatenate((R1, t2), axis=1)
-	P3 = np.concatenate((R2, t1), axis=1)
-	P4 = np.concatenate((R2, t2), axis=1)
-	for P in [P1, P2, P3, P4]:
-		# testing chirality of Triangulation
-		X = LinearTriangulation(x1[:, 0], x2[:, 0], P0, P)
-		print('Triangulation points shape: {}'.format(X.shape))
-		P0_front = chierality(P0, X)
-		P_front = chierality(P, X)
-		if P0_front and P_front:
-			return P0, P
-		else:
-			print('not essential')
-	print("could not find a valid decomposition of essential matrix")
-	return P0, P1
+def GeometricTriangulation(x1, x2, P1, P2):
+	'''
+	Bad result currently
+	'''
+	R1, t1 = P1[:, :3], P1[:, -1]
+	R2, t2 = P2[:, :3], P2[:, -1]
+	R, t = R2 @ R1.T, t2.reshape(-1,1) - t1.reshape(-1,1)
+	E = Skew(t.reshape(-1, 1)) @ R
+	'''
+	x1 and x2 has to be normalized points
 
-def LinearTriangulation(x1, x2, P1, P2):
+	backproject P1 as 3D line and P2 as 3D plane to perform intersection
+	1. generate F from two camera projection matrices
 	'''
-	input:
-		- x1: inhomogeneous normalized point u, v in image 1
-		- x2: inhomogeneous normalized point u, v in image 2
-		- P1: projection matrix in image 1
-		- P2: projection matrix in image 2
-	'''
-	'''
-	DOUBLE CHECK
-	v1P1^3T - P1^2T
-	u1P1^3T - P1^1T  == X, perform SVD to minimize algebraic error
-	v2P2^3T - P2^2T
-	u2P2^3T - P2^1T
-	'''	
-	# x1 shape == (3, n)
-	A = []
-	x1, x2 = Dehomogenize(x1), Dehomogenize(x2)
-	# start with one point
-	A.append(x1[0] * P1[-1, :] - P1[1, :])
-	A.append(x1[1] * P1[-1, :] - P1[0, :])
-	A.append(x2[0] * P2[-1, :] - P2[1, :])
-	A.append(x2[1] * P2[-1, :] - P2[0, :])
-	A = np.vstack(A)
-	# perform singular value decomposition
-	U, d, Vt = np.linalg.svd(A)
-	X = Vt[-1, :].T
+	if x1.shape == (2,1):
+		x1, x2 = Homogenize(x1), Homogenize(x2)
+	x1, x2 = x1.reshape(3,1), x2.reshape(3,1)
+	assert x1.shape == (3, 1)
+	if np.allclose(t1, np.zeros((3,1))):
+		C1 = np.zeros((4,1))
+		C1[-1, 0] = 1
+		sudoP1 = P1.T
+	else:
+		C1 = RightNull(P1) # camera center from P1, shape = 4, 1
+		sudoP1 = np.linalg.inv(P1.T @ P1) @ P1.T
+	# project the point from first image to the line in the second image
+	assert E.shape == (3, 3)
+	l2 = E @ x1 # l2 is (a, b, c)
+	l2_orth = np.matrix([-l2.item(1) * x2.item(2), 
+						l2.item(0) * x2.item(2), 
+						l2.item(1) * x2.item(0) - l2.item(0) * x2.item(1)]).reshape(3,1)
+	# backproject 3D plane into the space
+	pi = P2.T @ l2_orth # shape = (4, 1), (a, b, c, d)
+	# backproject 3D line into the space
+	X_inf = sudoP1 @ x1
+	# intersection between 3D line and 3D plane formula
+	piC1, piX_inf = np.sum(np.multiply(pi, C1)) - np.multiply(pi,C1), np.multiply(pi, X_inf) - np.sum(np.multiply(pi, X_inf))
+	X = np.multiply(X_inf, piC1) - np.multiply(C1, piX_inf)
 	assert X.shape == (4, 1)
-	# calculating the re-projection error
 	x1_est, x2_est = P1 @ X, P2 @ X
-	print('reporjection error: {}'.format(np.sqrt(np.sum(Dehomogenize(x1_est) - x1.reshape(-1, 1)) ** 2 + np.sum(Dehomogenize(x2_est) - x2.reshape(-1,1)) ** 2)))
+	print('reporjection error: {}'.format(np.sqrt(np.sum(Dehomogenize(x1_est) - Dehomogenize(x1).reshape(-1, 1)) ** 2 + np.sum(Dehomogenize(x2_est) - Dehomogenize(x2).reshape(-1,1)) ** 2)))
 	return X
-	
-'''
-X is the reconstructed homogeneous 3D point
-Chirality tests whether the reconstructed point is in front of the camera pose
-'''
-def chierality(P, X):
-	assert X.shape == (4, 1)
-	w = P[2, :] @ X
-	return w * X[-1,0] * np.linalg.det(P[:, :3]) > 0
-
-def DLT_E(norm_x1, norm_x2, normalize=True):
-    # Inputs:
-    #    x1 - homogeneous normalized correspondences in image 1
-    #    x2 - homogeneous normalized correspondences in image 2
-    #    normalize - if True, apply data normalization to x1 and x2
-    #
-    # Outputs:
-    #    E - the DLT estimate of the essential matrix  
-    
-    # points normalization with calibration matrix
-    print("normalized points shape: {}".format(norm_x1.shape))
-    assert norm_x1.shape[0] == 3
-    x1, x2 = np.matrix(Dehomogenize(norm_x1)), np.matrix(Dehomogenize(norm_x2))
-    # data normalization
-    if normalize:
-        x1, T1 = Normalize(x1)
-        x2, T2 = Normalize(x2)
-    else:
-        x1 = Homogenize(x1)
-        x2 = Homogenize(x2)
-    A = np.zeros((0, 9))
-    for i in range(x1.shape[1]):
-        Ai = np.kron(x2[:, i].T, x1[:, i].T)
-        A = np.vstack((A, Ai))
-    f = RightNull(A)
-    E = f.reshape(3, 3)
-    u, d, vt = np.linalg.svd(E)
-    d[2] = 0
-    a, b = d[0], d[1]
-    d[0] = d[1] = (a+b)/2
-    E = u @ np.diag(d) @ vt
-    # data denormalization
-    if normalize:
-        E = T2.T @ E @ T1
-    E_norm = E / np.linalg.norm(E)
-    return E_norm
 
 if __name__ == '__main__':
 	main()

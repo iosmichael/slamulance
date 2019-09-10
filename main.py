@@ -3,7 +3,7 @@ import argparse
 
 from controller import SLAMController
 
-VIDEO_PATH = './videos/test_kitti984.mp4'
+VIDEO_PATH = './videos/driving_country.mp4'
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='SLAM program with real world video')

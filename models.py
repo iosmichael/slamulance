@@ -23,11 +23,18 @@ class Frame:
 	def get_3D_points(self, inliers):
 		pts = []
 		for i in inliers:
+			assert i in self.points.keys()
 			pts.append(self.points[i])
 		return pts
 
-	def add_3D_point(self, pt3D):
-		self.points.append(pt3D)
+	def add_3D_point(self, inlier_idx, pt3D):
+		self.points[inlier_idx] = pt3D
+
+	def has_all(self, inlier_idx):
+		for i in inlier_idx:
+			if i not in self.points.keys():
+				return False
+		return True
 
 	def clear(self):
 		# release the memories once we are done with the triangulation with the next frame
@@ -46,8 +53,11 @@ class Pose:
 		self.R = R
 		self.t = t
 
+	def P(self):
+		return np.hstack((self.R, self.t))
+
 	def Rt(self):
-		return np.concatenate((R, t))
+		return self.R, self.t
 
 '''
 3D feature model
@@ -56,7 +66,7 @@ class Pose:
 '''
 class Point3D:
 
-	def __init__(self):
+	def __init__(self, data):
 		'''
 		information on observations:
 			points = [x ...]
@@ -67,7 +77,8 @@ class Point3D:
 		self.kps_idx = []
 
 		# homogeneous 3D point
-		self.data = np.zeros((4,1))
+		assert data.shape == (4, 1)
+		self.data = data
 
 	def __str__(self):
 		return "Point3D: [{}, {}, {}, {}]".format(
@@ -80,6 +91,14 @@ class Point3D:
 	def add_observation(self, point, frame_idx):
 		# points are represented by numpy data structure for computing efficiency
 		assert point.shape == (2, 1)
-		self.point2D = np.stack((self.point2D, point), axis=1)
+		self.point2D = np.hstack((self.point2D, point))
 		self.frame_ids.append(frame_idx)
 		assert len(self.frame_ids) == self.point2D.shape[1]
+
+	def get_observation(self, frame_idx):
+		print(self.frame_ids)
+		assert frame_idx in self.frame_ids
+		return self.point2D[self.frame_ids.index(frame_idx)]
+
+	def get_data(self):
+		return self.data
