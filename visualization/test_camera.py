@@ -38,7 +38,7 @@ def main():
 	poses.append(np.linalg.inv(pose))
 	while not pangolin.ShouldQuit():
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-		gl.glClearColor(1.0, 1.0, 1.0, 1.0)
+		gl.glClearColor(0.0, 0.0, 0.0, 1.0)
 		dcam.Activate(scam)
 
 		pose[2, 3] = pose[2, 3] - 1

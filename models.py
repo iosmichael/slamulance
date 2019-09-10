@@ -54,7 +54,8 @@ class Pose:
 		self.t = t
 
 	def P(self):
-		return np.hstack((self.R, self.t))
+		print(self.R, self.t)
+		return np.hstack((self.R, self.t.reshape(-1,1)))
 
 	def Rt(self):
 		return self.R, self.t

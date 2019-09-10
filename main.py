@@ -2,6 +2,7 @@ import cv2
 import argparse
 
 from controller import SLAMController
+from view import SLAMView3D
 
 VIDEO_PATH = './videos/driving_country.mp4'
 
@@ -12,6 +13,7 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	
 	cap = cv2.VideoCapture(args.video_path)
+	view3d = SLAMView3D()
 	# initialize controller for processing
 	SLAM = SLAMController(cap)
 	while cap.isOpened():
@@ -21,6 +23,9 @@ if __name__ == '__main__':
 			this is our main function block for any SLAM operations
 			'''
 			SLAM.process_frame(frame)
+			if len(SLAM.frames) <= 3:
+				continue
+			view3d.draw_3d(SLAM.frames, SLAM.points)
 			if cv2.waitKey(25) & 0xFF == ord('q'):
 				break
 		else:
