@@ -1,3 +1,9 @@
+'''
+Visual Monocular SLAM Implementation
+Created: Sept 9, 2019
+Author: Michael Liu (GURU AI Group, UCSD)
+'''
+
 import numpy as np 
 from .utils import Homogenize, Dehomogenize, Normalize
 

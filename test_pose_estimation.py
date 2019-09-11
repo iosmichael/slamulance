@@ -1,3 +1,9 @@
+'''
+Visual Monocular SLAM Implementation
+Created: Sept 8, 2019
+Author: Michael Liu (GURU AI Group, UCSD)
+'''
+
 import numpy as np
 from geometry.utils import *
 from geometry.EPnP import *

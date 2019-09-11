@@ -4,4 +4,5 @@
 *.g2o
 # Python garbage
 __pycache__
+*.pyc
 .ipynb_checkpoint

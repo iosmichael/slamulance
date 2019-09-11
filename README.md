@@ -61,3 +61,4 @@ compiled libraries of g2o, pangolin are saved in slam/libs, they are for Python 
 
 # ScreenShot
 ![Screenshot](./screenshots/screen.png "Feature Extraction and Matching")
+![Screenshot](./screenshots/3d.png "3D Reconstruction w/o. Bundle Adjustment")

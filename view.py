@@ -1,3 +1,9 @@
+'''
+Visual Monocular SLAM Implementation
+Created: Sept 10, 2019
+Author: Michael Liu (GURU AI Group, UCSD)
+'''
+
 import cv2
 import numpy as np 
 import multiprocessing as mp
@@ -13,6 +19,7 @@ class SLAMView2D:
 	'''
 	View class that contains all 2D cv2 drawing functionality in addition to 3D drawing
 	'''
+
 	def draw_2d_frame(self, frame, window_name='Driving POV'):
 		cv2.imshow(window_name, frame)
 
@@ -24,6 +31,12 @@ class SLAMView2D:
 			cv2.line(frame, (matches[0, i, 0], matches[0, i, 1]), (matches[1, i, 0], matches[1, i, 1]), (255, 0, 0), thickness=1)
 
 class SLAMView3D:
+	
+	'''
+	taken from george hotz's twitchslam display file
+	- https://github.com/geohot/twitchslam/display.py
+	'''
+
 	def __init__(self):
 		self.data = None
 
@@ -82,10 +95,7 @@ class SLAMView3D:
 			if len(self.data) > 1:
 				gl.glPointSize(5)
 				points = self.data[1]
-				colors = np.zeros((points.shape[0], 3))
-				colors[:, 1] = 1
-				colors[:, 2] = 1
-				colors[:, 0] = 1
+				colors = self.data[2]
 				pangolin.DrawPoints(points, colors)
 			
 		pangolin.FinishFrame()
@@ -96,6 +106,7 @@ class SLAMView3D:
 
 		poses = []
 		pts = []
+		colors = []
 		for f in frames:
 			# invert pose for display only
 			pose = f.pose.P()
@@ -105,9 +116,10 @@ class SLAMView3D:
 		
 		for p in points:
 			pts.append(p.get_data())
+			colors.append(p.get_color())
 		# print(poses)
 		print(np.stack(poses, axis=0).shape)
 		if len(pts) == 0:
 			self.q.put([np.stack(poses, axis=0)])
 		else:
-			self.q.put([np.stack(poses, axis=0), Dehomogenize(np.hstack(pts)).T])
+			self.q.put([np.stack(poses, axis=0), Dehomogenize(np.hstack(pts)).T, np.hstack(colors).T])

@@ -1,3 +1,9 @@
+'''
+Visual Monocular SLAM Implementation
+Created: Sept 10, 2019
+Author: Michael Liu (GURU AI Group, UCSD)
+'''
+
 import numpy as np
 import cv2
 
@@ -31,8 +37,8 @@ class SLAMController:
 		self.frames = []
 		# point: keypoints index, frame index
 		self.points = []
-		self.K = np.array([[525, 0, self.frame_width//2],
-						   [0, 525, self.frame_height//2],
+		self.K = np.array([[645.2, 0, self.frame_width//2],
+						   [0, 645.2, self.frame_height//2],
 						   [0, 0, 1]])
 
 	def __str__(self):
@@ -69,11 +75,11 @@ class SLAMController:
 			if prev_frame.pose is None:
 				# use matches to calculate fundamental matrix
 				# perform triangulation with P = [I | 0] and P' = [M | v]
-				self.TwoViewPoseEstimation(curr_frame, prev_frame)
+				self.TwoViewPoseEstimation(curr_frame, prev_frame, image=frame)
 			else:
 				# find the 3D points in the previous frame
 				# EPnP for pose estimation to only update current frame's camera pose
-				self.EssentialPoseEstimation(curr_frame, prev_frame)
+				self.EssentialPoseEstimation(curr_frame, prev_frame, image=frame)
 
 			# shape of matches: 2 x n x 2
 			# post-processing the keypoints data
@@ -139,7 +145,7 @@ class SLAMController:
 			curr_frame.add_3D_point(item[1], p3d)
 		assert curr_frame.has_all(curr_frame.leftInliers)
 
-	def EssentialPoseEstimation(self, curr_frame, prev_frame):
+	def EssentialPoseEstimation(self, curr_frame, prev_frame, image):
 		pts1, pts2 = prev_frame.kps[prev_frame.rightInliers], curr_frame.kps[curr_frame.leftInliers]
 		pts1, pts2 = Homogenize(pts1.T), Homogenize(pts2.T)
 		n = pts1.shape[1]
@@ -162,7 +168,8 @@ class SLAMController:
 		Xs = Triangulation(norm_pts1, norm_pts2, prev_frame.pose.P(), curr_frame.pose.P(), option='linear', verbose=False)
 		assert Xs.shape[1] == len(triIdx)
 		for i, item in enumerate(triIdx):
-			p3d = Point3D(Xs[:, i].reshape(-1,1))
+			pt = curr_frame.kps[item[1]].astype(int)
+			p3d = Point3D(Xs[:, i].reshape(-1,1), image[pt[0], pt[1], :].reshape(3,1))
 			# add new 3d point
 			self.points.append(p3d)
 			p3d.add_observation(point=prev_frame.kps[item[0]].reshape(-1,1), frame_idx=self.frame_idx-1)
@@ -171,7 +178,7 @@ class SLAMController:
 			curr_frame.add_3D_point(item[1], p3d)
 		assert curr_frame.has_all(curr_frame.leftInliers)
 
-	def TwoViewPoseEstimation(self, curr_frame, prev_frame):
+	def TwoViewPoseEstimation(self, curr_frame, prev_frame, image):
 		# creation of essential matrix and 3D points assuming the first pose (f2) is [I | 0], the second pose (f1) is [R | t]
 		# save for testing
 		pts1, pts2 = prev_frame.kps[prev_frame.rightInliers], curr_frame.kps[curr_frame.leftInliers]
@@ -185,10 +192,11 @@ class SLAMController:
 		print('Second camera R: {} t: {}'.format(P2[:, :3], P2[:, -1]))
 		prev_frame.pose = Pose(P1[:, :3], P1[:, -1])
 		curr_frame.pose = Pose(P2[:, :3], P2[:, -1])
-		Xs = Triangulation(norm_pts1, norm_pts2, P1, P2, option='linear', verbose=True)
+		Xs = Triangulation(norm_pts1, norm_pts2, P1, P2, option='linear', verbose=False)
 		assert Xs.shape[1] == n
 		for i in range(n):
-			p3d = Point3D(Xs[:, i].reshape(-1,1))
+			pt = curr_frame.kps[curr_frame.leftInliers[i]].astype(int)
+			p3d = Point3D(Xs[:, i].reshape(-1,1), image[pt[0], pt[1], :].reshape(3,1))
 			# add new 3d point
 			self.points.append(p3d)
 			p3d.add_observation(point=prev_frame.kps[prev_frame.rightInliers[i]].reshape(-1,1), frame_idx=self.frame_idx-1)

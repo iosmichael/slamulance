@@ -1,3 +1,9 @@
+'''
+Visual Monocular SLAM Implementation
+Created: Sept 10, 2019
+Author: Michael Liu (GURU AI Group, UCSD)
+'''
+
 import cv2
 import numpy as np 
 from skimage.measure import ransac
@@ -13,14 +19,16 @@ class FeatureExtractor:
 	- BFMatcher: Descriptor matching
 	- SKImage: RANSAC
 	'''
-	def feature_detecting(self, frame):
+	def feature_detecting(self, frame, mode='feat'):
 		orb = cv2.ORB_create()
-		# kps = orb.detect(frame,None)
-		# print(pts)
-		pts = cv2.goodFeaturesToTrack(np.mean(frame, axis=2).astype(np.uint8), 3000, qualityLevel=0.01, minDistance=7)
-		if pts is None:
-			return None, None
-		kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in pts]
+		kps = []
+		if mode == 'feat':
+			pts = cv2.goodFeaturesToTrack(np.mean(frame, axis=2).astype(np.uint8), 3000, qualityLevel=0.01, minDistance=7)
+			if pts is None:
+				return None, None
+			kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=20) for f in pts]
+		else:
+			kps = orb.detect(frame,None)
 		kps, des = orb.compute(frame, kps)
 		return kps, des
 
@@ -41,7 +49,7 @@ class FeatureExtractor:
 			if m.distance < 0.7*n.distance:
 				if m.distance < 30:
 					# clipping with window
-					if self.within_window(kp1[m.queryIdx], kp2[m.trainIdx], window=50):
+					if self.within_window(kp1[m.queryIdx], kp2[m.trainIdx], window=30):
 						good.append((m.queryIdx, m.trainIdx))
 		# use tuple to represent
 		good = np.array(good)
@@ -50,7 +58,7 @@ class FeatureExtractor:
 		kp2_ransac = kp2[good[:, 1]]
 		# Apply Ransac
 			# shape = (n, 2)
-		# model, inliers = ransac((kp1_ransac, kp2_ransac), FundamentalMatrixTransform, min_samples=8, residual_threshold=0.02, max_trials=100)
+		# model, inliers = ransac((kp1_ransac, kp2_ransac), EssentialMatrixTransform, min_samples=8, residual_threshold=0.02, max_trials=1000)
 		if True:
 			# essential
 			kp1_ransac, kp2_ransac = Dehomogenize(NormalizePoints(Homogenize(kp1_ransac.T), K)).T, Dehomogenize(NormalizePoints(Homogenize(kp2_ransac.T), K)).T

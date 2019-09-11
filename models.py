@@ -1,3 +1,9 @@
+'''
+Visual Monocular SLAM Implementation
+Created: Sept 10, 2019
+Author: Michael Liu (GURU AI Group, UCSD)
+'''
+
 import numpy as np 
 from geometry.utils import *
 
@@ -66,7 +72,7 @@ class Pose:
 '''
 class Point3D:
 
-	def __init__(self, data):
+	def __init__(self, data, color):
 		'''
 		information on observations:
 			points = [x ...]
@@ -79,6 +85,8 @@ class Point3D:
 		# homogeneous 3D point
 		assert data.shape == (4, 1)
 		self.data = data
+		assert color.shape == (3, 1)
+		self.color = color
 
 	def __str__(self):
 		return "Point3D: [{}, {}, {}, {}]".format(
@@ -102,3 +110,6 @@ class Point3D:
 
 	def get_data(self):
 		return self.data
+
+	def get_color(self):
+		return self.color
