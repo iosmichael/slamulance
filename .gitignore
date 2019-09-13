@@ -2,6 +2,7 @@
 *.mp4
 *.mkv
 *.g2o
+./videos/
 # Python garbage
 __pycache__
 *.pyc

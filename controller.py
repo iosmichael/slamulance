@@ -75,6 +75,7 @@ class SLAMController:
 			if prev_frame.pose is None:
 				# use matches to calculate fundamental matrix
 				# perform triangulation with P = [I | 0] and P' = [M | v]
+
 				self.TwoViewPoseEstimation(curr_frame, prev_frame, image=frame)
 			else:
 				# find the 3D points in the previous frame
@@ -95,7 +96,7 @@ class SLAMController:
 	# any preprocessing functionality here
 	def preprocessing_frame(self, frame):
 		frame_resize = cv2.resize(frame, dsize=(self.frame_width, self.frame_height))
-		kps, des = self.feature_extractor.feature_detecting(frame_resize)
+		kps, des = self.feature_extractor.feature_detecting(frame_resize, mode='feat')
 		kps = np.array([item.pt for item in kps])
 		print('changing keypoints to np array')
 		model = Frame(kps, des)

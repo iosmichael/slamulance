@@ -9,12 +9,35 @@ import numpy as np
 import multiprocessing as mp
 import pangolin
 import OpenGL.GL as gl
+
+# import pygame
+# from pygame.locals import DOUBLEBUF
 import numpy as np
 import time
 from geometry.utils import *
 
 
 class SLAMView2D:
+
+	# def __init__(self, W, H):
+	# 	pygame.init()
+	# 	self.screen = pygame.display.set_mode((W, H), DOUBLEBUF)
+	# 	self.surface = pygame.Surface(self.screen.get_size()).convert()
+
+	# def paint(self, img):
+	# 	# junk
+	# 	for event in pygame.event.get():
+	# 		pass
+
+	# 	# draw
+	# 	pygame.surfarray.blit_array(self.surface, img.swapaxes(0,1)[:, :, [2,1,0]])
+
+	# 	# RGB, not BGR (might have to switch in twitchslam)
+	# 	pygame.surfarray.blit_array(self.surface, img.swapaxes(0,1)[:, :, [0,1,2]])
+	# 	self.screen.blit(self.surface, (0,0))
+
+	# 	# blit
+	# 	pygame.display.flip()
 
 	'''
 	View class that contains all 2D cv2 drawing functionality in addition to 3D drawing
@@ -119,6 +142,23 @@ class SLAMView3D:
 			colors.append(p.get_color())
 		# print(poses)
 		print(np.stack(poses, axis=0).shape)
+		if len(pts) == 0:
+			self.q.put([np.stack(poses, axis=0)])
+		else:
+			self.q.put([np.stack(poses, axis=0), Dehomogenize(np.hstack(pts)).T, np.hstack(colors).T])
+
+	# stereo testing
+	def draw_cameras_points(self, cameras, points, colors):
+		if self.q is None:
+			return
+
+		poses, pts = [], points
+		for cam in cameras:
+			Rt = cam
+			Rt = np.vstack((Rt, np.zeros((1,4))))
+			Rt[-1, -1] = 1
+			poses.append(np.array(np.linalg.inv(Rt)))
+
 		if len(pts) == 0:
 			self.q.put([np.stack(poses, axis=0)])
 		else:

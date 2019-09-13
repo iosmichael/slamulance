@@ -41,8 +41,8 @@ def DLT_E(norm_x1, norm_x2, normalize=True):
     u, d, vt = np.linalg.svd(E)
     d[2] = 0
     print('diag: {}'.format(d))
-    # a, b = d[0], d[1]
-    # d[0] = d[1] = (a+b)/2
+    a, b = d[0], d[1]
+    d[0] = d[1] = (a+b)/2
     E = u @ np.diag(d) @ vt
     # data denormalization
     if normalize:

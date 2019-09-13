@@ -47,6 +47,7 @@ def LinearTriangulation(x1, x2, P1, P2, verbose=False):
     # perform singular value decomposition
     U, d, Vt = np.linalg.svd(A)
     X = Vt[-1, :].T
+    X = X.reshape(-1, 1)
     assert X.shape == (4, 1)
     # calculating the re-projection error
     x1_est, x2_est = P1 @ X, P2 @ X

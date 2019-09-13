@@ -47,10 +47,10 @@ class FeatureExtractor:
 		good = []
 		for m,n in matches:
 			if m.distance < 0.75*n.distance:
-			# 	if m.distance < 30:
-					# clipping with window
-					# if self.within_window(kp1[m.queryIdx], kp2[m.trainIdx], window=30):
-				good.append((m.queryIdx, m.trainIdx))
+				if m.distance < 30:
+				# clipping with window
+				# if self.within_window(kp1[m.queryIdx], kp2[m.trainIdx], window=30):
+					good.append((m.queryIdx, m.trainIdx))
 		# use tuple to represent
 		good = np.array(good)
 		# kp1, kp2 = np.array([item.pt for item in kp1]), np.array([item.pt for item in kp2])
@@ -61,14 +61,14 @@ class FeatureExtractor:
 		# model, inliers = ransac((kp1_ransac, kp2_ransac), EssentialMatrixTransform, min_samples=8, residual_threshold=0.02, max_trials=1000)
 		if True:
 			# essential
-
-			kp1_ransac, kp2_ransac = Dehomogenize(NormalizePoints(Homogenize(kp1_ransac.T), K)).T, Dehomogenize(NormalizePoints(Homogenize(kp2_ransac.T), K)).T
-			model, inliers = ransac((kp1_ransac, kp2_ransac),
-            	            EssentialMatrixTransform, min_samples=8,
-                	        residual_threshold=0.02, max_trials=100)
-   			# model, inliers = ransac((kp1_ransac, kp2_ransac),
-      #       	            FundamentalMatrixTransform, min_samples=8,
-      #           	        residual_threshold=0.01, max_trials=1000)
+			# kp1_ransac, kp2_ransac = Dehomogenize(NormalizePoints(Homogenize(kp1_ransac.T), K)).T, Dehomogenize(NormalizePoints(Homogenize(kp2_ransac.T), K)).T
+			# model, inliers = ransac((kp1_ransac, kp2_ransac),
+   #          	            EssentialMatrixTransform, min_samples=8,
+   #              	        residual_threshold=0.02, max_trials=100)
+   
+   			model, inliers = ransac((kp1_ransac, kp2_ransac),
+            	            FundamentalMatrixTransform, min_samples=8,
+                	        residual_threshold=0.95, max_trials=100)
 		'''
 		TODO: add a window for inlier
 		'''
