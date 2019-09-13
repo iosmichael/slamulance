@@ -10,8 +10,8 @@ from geometry.EPnP import *
 
 def main():
 	# load data
-	x0 = np.loadtxt('test/hw2_points2D.txt').T
-	X0 = np.loadtxt('test/hw2_points3D.txt').T
+	x0 = np.loadtxt('test/data/hw2_points2D.txt').T
+	X0 = np.loadtxt('test/data/hw2_points3D.txt').T
 	K = np.array([[1545.0966799187809, 0, 639.5], 
 				  [0, 1545.0966799187809, 359.5], 
 				  [0, 0, 1]])

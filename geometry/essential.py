@@ -40,14 +40,43 @@ def DLT_E(norm_x1, norm_x2, normalize=True):
     E = f.reshape(3, 3)
     u, d, vt = np.linalg.svd(E)
     d[2] = 0
-    a, b = d[0], d[1]
-    d[0] = d[1] = (a+b)/2
+    print('diag: {}'.format(d))
+    # a, b = d[0], d[1]
+    # d[0] = d[1] = (a+b)/2
     E = u @ np.diag(d) @ vt
     # data denormalization
     if normalize:
         E = T2.T @ E @ T1
     E_norm = E / np.linalg.norm(E)
     return E_norm
+
+def DLT_F(x1, x2, normalize=True):
+    assert x1.shape[0] == 3
+    x1, x2 = np.matrix(Dehomogenize(x1)), np.matrix(Dehomogenize(x2))
+    # data normalization
+    if normalize:
+        x1, T1 = Normalize(x1)
+        x2, T2 = Normalize(x2)
+    else:
+        x1 = Homogenize(x1)
+        x2 = Homogenize(x2)
+    A = np.zeros((0, 9))
+    for i in range(x1.shape[1]):
+        Ai = np.kron(x2[:, i].T, x1[:, i].T)
+        A = np.vstack((A, Ai))
+    f = RightNull(A)
+    F = f.reshape(3, 3)
+    u, d, vt = np.linalg.svd(F)
+    d[2] = 0
+    print('diag: {}'.format(d))
+    # a, b = d[0], d[1]
+    # d[0] = d[1] = (a+b)/2
+    F = u @ np.diag(d) @ vt
+    # data denormalization
+    if normalize:
+        F = T2.T @ F @ T1
+    F_norm = F / np.linalg.norm(F)
+    return F_norm
 
 '''
 Decompose Essential Matrix into four solutions
